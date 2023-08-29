@@ -1,0 +1,108 @@
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de productos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.5.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    
+    {% load static %}
+
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+    <div class="container-fluid">
+        <div class="row">
+            <aside class="col-md-3 sidebar">
+                <a href="{% url 'crear_producto' %}" class="sidebar-link mt-4">Producto</a>
+                <a href="{% url 'detalle_producto' %}" class="sidebar-link mt-4">Detalle Productos</a>
+                <a href="{% url 'mostrar_informacion' %}" class="sidebar-link mt-4">Ver detalles</a> 
+                  
+            </aside>
+            <main class="col-md-9 d-flex align-items-center justify-content-center">
+                <div class="col-md-6">
+                    <h2 class="text-center">Detalle de Producto</h1>
+                    <form class="w-50 mx-auto"> 
+                        <div class="form-group mt-4">
+                            <label for="producto">Producto:</label>
+                            <select class="form-control" id="producto" name="producto" required>
+                                <option value="">Selecciona un producto...</option>
+                                {% for producto in productos_disponibles %}
+                                    <option value="{{ producto.id }}">{{ producto.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group mt-3">
+                            <label for="cantidad">Cantidad:</label>
+                            <input type="number" class="form-control" id="cantidad" name="cantidad" required>
+                        </div>
+                        <div class="text-center mt-3">
+                            <button type="submit" id="guardar-detalle" class="btn btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+       document.addEventListener('DOMContentLoaded', function() {
+        const productoSelect = document.getElementById('producto');
+        const cantidadInput = document.getElementById('cantidad');
+        const resultadoDiv = document.getElementById('resultado');
+        const guardarBtn = document.getElementById('guardar-detalle');
+
+            // Llenar el select con productos al cargar la página
+            fetch('/api/productos/')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(producto => {
+                        const option = document.createElement('option');
+                        option.value = producto.id;
+                        option.textContent = producto.nombre;
+                        productoSelect.appendChild(option);
+                    });
+                });
+
+            guardarBtn.addEventListener('click', function() {
+                const productoId = productoSelect.value;
+                const cantidad = parseInt(cantidadInput.value);
+                
+                if (!isNaN(cantidad) && productoId) {
+                    // Calcular Valor Total y Valor IVA
+                    fetch(`/api/productos/${productoId}/`)
+                        .then(response => response.json())
+                        .then(producto => {
+                            const valorTotal = producto.precio * cantidad;
+                            const valorIVA = valorTotal * 0.19;
+
+                            // Enviar solicitud POST para guardar el detalle
+                            fetch('/api/detalles/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    producto: productoId,
+                                    cantidad: cantidad,
+                                    valor_total: valorTotal,
+                                    valor_iva: valorIVA
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                resultadoDiv.textContent = 'Detalle de producto guardado con éxito.';
+                            });
+                        });
+                } else {
+                    resultadoDiv.textContent = 'Por favor, selecciona un producto y una cantidad válida.';
+                }
+            });
+        });
+    </script>
+
+
+</body>
+</html>
